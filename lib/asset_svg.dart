@@ -8,8 +8,7 @@
 library r_dart_library;
 
 import 'dart:async';
-import 'dart:ui' as ui show Image, Picture;
-import 'dart:ui';
+import 'dart:ui' as ui show Image;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -38,19 +37,14 @@ class AssetSvg extends ImageProvider<AssetSvg> {
     assert(key == this);
 
     var rawSvg = await rootBundle.loadString(asset);
-    final DrawableRoot svgRoot = await svg.fromSvgString(rawSvg, rawSvg);
-    final scale = window.devicePixelRatio;
-    final ui.Picture picture = svgRoot.toPicture(
-      size: Size(
-        width.toDouble() * scale,
-        height.toDouble() * scale,
-      ),
-      clipToViewBox: false,
-    );
+    final PictureInfo pictureInfo =
+        await vg.loadPicture(SvgStringLoader(rawSvg), null);
+
+    final scale = 1.0;
     var imageW = (width * scale).toInt();
     var imageH = (height * scale).toInt();
-    final ui.Image image = await picture.toImage(imageW, imageH);
-
+    // final ui.Image image = await picture.toImage(imageW, imageH);
+    final ui.Image image = await pictureInfo.picture.toImage(imageW, imageH);
     return ImageInfo(
       image: image,
       scale: scale,
@@ -61,11 +55,13 @@ class AssetSvg extends ImageProvider<AssetSvg> {
   bool operator ==(dynamic other) {
     if (other.runtimeType != runtimeType) return false;
     final AssetSvg typedOther = other;
-    return asset == typedOther.asset && width == typedOther.width && height == typedOther.height;
+    return asset == typedOther.asset &&
+        width == typedOther.width &&
+        height == typedOther.height;
   }
 
   @override
-  int get hashCode => hashValues(asset.hashCode, width, height, 1.0);
+  int get hashCode => Object.hash(asset.hashCode, width, height, 1.0);
 
   @override
   String toString() => '$runtimeType(${describeIdentity(asset)}, scale: 1.0)';
