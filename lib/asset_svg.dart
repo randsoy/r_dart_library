@@ -8,7 +8,7 @@
 library r_dart_library;
 
 import 'dart:async';
-import 'dart:ui' as ui show Image;
+import 'dart:ui' as ui show PictureRecorder, Canvas, Picture;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -35,19 +35,27 @@ class AssetSvg extends ImageProvider<AssetSvg> {
 
   Future<ImageInfo> _loadAsync(AssetSvg key) async {
     assert(key == this);
+    var rawSvg = await rootBundle.loadString(key.asset);
+    final pictureInfo = await vg.loadPicture(
+      SvgStringLoader(rawSvg),
+      null,
+      clipViewbox: false,
+    );
 
-    var rawSvg = await rootBundle.loadString(asset);
-    final PictureInfo pictureInfo =
-        await vg.loadPicture(SvgStringLoader(rawSvg), null);
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final ui.Canvas canvas = ui.Canvas(recorder);
 
-    final scale = 1.0;
-    var imageW = (width * scale).toInt();
-    var imageH = (height * scale).toInt();
-    // final ui.Image image = await picture.toImage(imageW, imageH);
-    final ui.Image image = await pictureInfo.picture.toImage(imageW, imageH);
+    canvas.scale(key.width / pictureInfo.size.width,
+        key.height / pictureInfo.size.height);
+    canvas.drawPicture(pictureInfo.picture);
+    final ui.Picture scaledPicture = recorder.endRecording();
+
+    final image =
+        await scaledPicture.toImage(key.width.toInt(), key.height.toInt());
+
     return ImageInfo(
       image: image,
-      scale: scale,
+      scale: 1.0,
     );
   }
 
